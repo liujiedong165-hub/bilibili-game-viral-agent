@@ -1,4 +1,5 @@
 from pathlib import Path
+from datetime import datetime
 
 import pandas as pd
 
@@ -10,6 +11,7 @@ from app.score_reports import score_data_quality
 
 
 DATA_DIR = Path("data")
+REPORT_DIR = DATA_DIR / "reports"
 
 
 def select_agent_targets(limit=5):
@@ -41,8 +43,26 @@ def run_agent(limit=5):
     for bvid in targets:
         print(f"- {bvid}")
 
+    failed_reports = []
     for bvid in targets:
-        generate_report(bvid)
+        try:
+            generate_report(bvid)
+        except Exception as error:
+            failed_reports.append(
+                {
+                    "BV号": bvid,
+                    "失败阶段": "AI报告生成",
+                    "错误信息": str(error),
+                    "记录时间": datetime.now().isoformat(timespec="seconds"),
+                }
+            )
+            print(f"报告生成失败，已跳过：{bvid}，原因：{error}")
+
+    if failed_reports:
+        REPORT_DIR.mkdir(exist_ok=True)
+        failed_path = REPORT_DIR / "report_errors.csv"
+        pd.DataFrame(failed_reports).to_csv(failed_path, index=False, encoding="utf-8-sig")
+        print(f"失败报告记录已保存：{failed_path}")
 
     generate_overview_report()
     print("Agent 运行完成。报告保存在 data/reports 文件夹。")

@@ -92,6 +92,11 @@ def build_prompt(video_data, analysis_data, comment_table):
 
 
 def generate_report(bvid):
+    output_path = REPORT_DIR / f"report_{bvid}.md"
+    if output_path.exists() and output_path.stat().st_size > 500:
+        print(f"报告已存在，跳过：{output_path}")
+        return output_path.read_text(encoding="utf-8")
+
     video_table, comment_table, analysis_table = load_data()
 
     matched_video = video_table[video_table["BV号"] == bvid]
@@ -120,7 +125,6 @@ def generate_report(bvid):
         ) from error
 
     report = response.output_text
-    output_path = REPORT_DIR / f"report_{bvid}.md"
     with open(output_path, "w", encoding="utf-8") as file:
         file.write(report)
 
